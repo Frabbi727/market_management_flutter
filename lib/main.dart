@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/constants/app_routes.dart';
+import 'core/constants/app_theme.dart';
 import 'shared/widgets/main_layout.dart';
 import 'features/dashboard/ui/dashboard_screen.dart';
 import 'features/shops/ui/shops_screen.dart';
@@ -27,10 +28,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Market Management',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       home: const AppShell(),
     );
   }
@@ -50,6 +48,29 @@ class _AppShellState extends State<AppShell> {
     setState(() {
       _currentRoute = route;
     });
+  }
+
+  String _getPageTitle() {
+    switch (_currentRoute) {
+      case AppRoutes.dashboard:
+        return 'Dashboard';
+      case AppRoutes.shops:
+        return 'Shops';
+      case AppRoutes.meters:
+        return 'Meters & Readings';
+      case AppRoutes.tariffs:
+        return 'Tariffs';
+      case AppRoutes.monthlyInputs:
+        return 'Monthly Inputs';
+      case AppRoutes.billing:
+        return 'Billing (Compute)';
+      case AppRoutes.invoices:
+        return 'Invoices';
+      case AppRoutes.reports:
+        return 'Reports';
+      default:
+        return 'Dashboard';
+    }
   }
 
   Widget _getCurrentScreen() {
@@ -79,6 +100,7 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return MainLayout(
       onNavigate: _navigateTo,
+      currentPageTitle: _getPageTitle(),
       child: _getCurrentScreen(),
     );
   }

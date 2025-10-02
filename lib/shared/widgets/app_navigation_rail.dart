@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_routes.dart';
+import '../../core/constants/app_theme.dart';
 
 // Navigation state provider
 final selectedNavIndexProvider = StateProvider<int>((ref) => 0);
+
+// Navigation rail expanded state provider
+final navRailExpandedProvider = StateProvider<bool>((ref) => true);
 
 class AppNavigationRail extends ConsumerWidget {
   final Function(String) onDestinationSelected;
@@ -16,6 +20,7 @@ class AppNavigationRail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(selectedNavIndexProvider);
+    final isExtended = ref.watch(navRailExpandedProvider);
 
     return NavigationRail(
       selectedIndex: selectedIndex,
@@ -23,9 +28,23 @@ class AppNavigationRail extends ConsumerWidget {
         ref.read(selectedNavIndexProvider.notifier).state = index;
         onDestinationSelected(_getRouteForIndex(index));
       },
-      labelType: NavigationRailLabelType.all,
+      extended: isExtended,
+      labelType: isExtended ? null : NavigationRailLabelType.all,
       backgroundColor: Colors.white,
       elevation: 1,
+      selectedIconTheme: IconThemeData(
+        color: AppTheme.primaryColor,
+        size: 28,
+      ),
+      selectedLabelTextStyle: const TextStyle(
+        color: AppTheme.primaryColor,
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+      ),
+      unselectedIconTheme: IconThemeData(
+        color: Colors.grey[600],
+        size: 24,
+      ),
       destinations: const [
         NavigationRailDestination(
           icon: Icon(Icons.dashboard_outlined),

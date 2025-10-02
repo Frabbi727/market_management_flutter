@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://localhost:8080/'; // Update with your API URL
+  static const String baseUrl = 'http://localhost:8080'; // Update with your API URL
 
   // Endpoints
   static const String shops = '/shops';

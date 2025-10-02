@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:market_management_flutter/features/dashboard/provider/dashboard_providers.dart';
+import '../../../core/constants/app_theme.dart';
 import '../../../shared/widgets/kpi_card.dart';
 import '../../../shared/widgets/period_picker.dart';
 
@@ -13,22 +14,16 @@ class DashboardScreen extends ConsumerWidget {
     final selectedPeriod = ref.watch(selectedPeriodProvider);
     final dashboardAsync = ref.watch(dashboardSummaryProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: Column(
+    return Container(
+      color: AppTheme.backgroundColor,
+      child: Column(
         children: [
-          // Header with period picker
+          // Period Picker Bar
           Container(
             color: Colors.white,
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Text(
-                  'Dashboard',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
                 const Spacer(),
                 PeriodPicker(
                   currentPeriod: selectedPeriod,
@@ -45,7 +40,7 @@ class DashboardScreen extends ConsumerWidget {
           // Main content
           Expanded(
             child: dashboardAsync.when(
-              data: (summary) => _buildDashboardContent(context, summary),
+              data: (summary) => _buildDashboardContent(context, ref, summary),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(
                 child: Column(
@@ -69,7 +64,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDashboardContent(BuildContext context, summary) {
+  Widget _buildDashboardContent(BuildContext context, WidgetRef ref, summary) {
     final currencyFormat = NumberFormat.currency(symbol: 'TK ', decimalDigits: 2);
     final numberFormat = NumberFormat('#,##0.00');
 
@@ -89,40 +84,40 @@ class DashboardScreen extends ConsumerWidget {
             children: [
               KpiCard(
                 title: 'Total Electricity Units',
-                value: numberFormat.format(summary.totalElectricityUnits),
+                value: numberFormat.format(summary.totalElectricityUnits ?? 0),
                 icon: Icons.electric_bolt,
-                color: Colors.orange,
+                color: AppTheme.electricityColor,
                 subtitle: 'kWh',
               ),
               KpiCard(
                 title: 'Total Electricity Amount',
-                value: currencyFormat.format(summary.totalElectricityAmount),
+                value: currencyFormat.format(summary.totalElectricityAmount ?? 0),
                 icon: Icons.monetization_on,
-                color: Colors.blue,
+                color: AppTheme.amountColor,
               ),
               KpiCard(
                 title: 'Total AC Cost',
-                value: currencyFormat.format(summary.totalAcCost),
+                value: currencyFormat.format(summary.totalAcCost ?? 0),
                 icon: Icons.ac_unit,
-                color: Colors.cyan,
+                color: AppTheme.acCostColor,
               ),
               KpiCard(
                 title: 'Total Service Cost',
-                value: currencyFormat.format(summary.totalServiceCost),
+                value: currencyFormat.format(summary.totalServiceCost ?? 0),
                 icon: Icons.handyman,
-                color: Colors.green,
+                color: AppTheme.serviceCostColor,
               ),
               KpiCard(
                 title: 'Total Invoices Amount',
-                value: currencyFormat.format(summary.totalInvoicesAmount),
+                value: currencyFormat.format(summary.totalInvoicesAmount ?? 0),
                 icon: Icons.receipt_long,
-                color: Colors.purple,
+                color: AppTheme.invoiceColor,
               ),
               KpiCard(
                 title: 'Invoices Status',
-                value: '${summary.paidInvoicesCount} / ${summary.unpaidInvoicesCount}',
+                value: '${summary.paidInvoicesCount ?? 0} / ${summary.unpaidInvoicesCount ?? 0}',
                 icon: Icons.account_balance_wallet,
-                color: Colors.teal,
+                color: AppTheme.statusColor,
                 subtitle: 'Paid / Unpaid',
               ),
             ],

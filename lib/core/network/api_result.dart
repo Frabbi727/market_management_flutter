@@ -1,3 +1,4 @@
+
 // Sealed class for handling API responses
 sealed class ApiResult<T> {
   const ApiResult();
