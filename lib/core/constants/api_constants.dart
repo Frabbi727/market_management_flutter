@@ -1,5 +1,11 @@
 class ApiConstants {
-  static const String baseUrl = 'http://localhost:8080'; // Update with your API URL
+  static const String baseUrl = 'http://localhost:8080';
+
+  // API Version
+  static const String apiVersion = '/api/v1';
+
+  // Full API URL
+  static String get apiBaseUrl => '$baseUrl$apiVersion';
 
   // Endpoints
   static const String shops = '/shops';

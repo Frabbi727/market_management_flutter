@@ -14,6 +14,9 @@ class DashboardScreen extends ConsumerWidget {
     final selectedPeriod = ref.watch(selectedPeriodProvider);
     final dashboardAsync = ref.watch(dashboardSummaryProvider);
 
+    // Fetch shops from API (triggers API call)
+    ref.watch(shopsProvider);
+
     return Container(
       color: AppTheme.backgroundColor,
       child: Column(
@@ -67,12 +70,90 @@ class DashboardScreen extends ConsumerWidget {
   Widget _buildDashboardContent(BuildContext context, WidgetRef ref, summary) {
     final currencyFormat = NumberFormat.currency(symbol: 'TK ', decimalDigits: 2);
     final numberFormat = NumberFormat('#,##0.00');
+    final shopsAsync = ref.watch(shopsProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Shops Count Info Bar
+          shopsAsync.when(
+            data: (shops) => Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.store, color: AppTheme.primaryColor, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Total Shops: ${shops.length}',
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    'API Connected',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            loading: () => Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('Loading shops...'),
+                ],
+              ),
+            ),
+            error: (error, _) => Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Failed to load shops: ${error.toString()}',
+                      style: TextStyle(color: Colors.red[700], fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           // KPI Cards Grid
           GridView.count(
             crossAxisCount: 3,
