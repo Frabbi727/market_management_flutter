@@ -44,6 +44,7 @@ final shopsProvider = FutureProvider.autoDispose<List<ShopModel>>((ref) async {
 });
 
 
+
 // Helper function to format period display
 String formatPeriodDisplay(String period) {
   try {
