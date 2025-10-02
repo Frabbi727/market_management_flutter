@@ -4,11 +4,20 @@ import '../models/dashboard_summary.dart';
 import '../models/shop_model.dart';
 import '../service/dashboard_service.dart';
 
-// Period provider (YYYY-MM format)
-final selectedPeriodProvider = StateProvider<String>((ref) {
-  final now = DateTime.now();
-  return DateFormat('yyyy-MM').format(now);
-});
+// Period provider (YYYY-MM format) using NotifierProvider for Riverpod 3.x
+class SelectedPeriodNotifier extends Notifier<String> {
+  @override
+  String build() {
+    final now = DateTime.now();
+    return DateFormat('yyyy-MM').format(now);
+  }
+
+  void setPeriod(String period) => state = period;
+}
+
+final selectedPeriodProvider = NotifierProvider<SelectedPeriodNotifier, String>(
+  SelectedPeriodNotifier.new,
+);
 
 // Dashboard summary provider with DEMO DATA
 final dashboardSummaryProvider =

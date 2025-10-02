@@ -21,26 +21,6 @@ class DashboardScreen extends ConsumerWidget {
       color: AppTheme.backgroundColor,
       child: Column(
         children: [
-          // Period Picker Bar
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                const Spacer(),
-                PeriodPicker(
-                  currentPeriod: selectedPeriod,
-                  onPeriodChanged: (newPeriod) {
-                    ref.read(selectedPeriodProvider.notifier).state = newPeriod;
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(height: 1),
-
-          // Main content
           Expanded(
             child: dashboardAsync.when(
               data: (summary) => _buildDashboardContent(context, ref, summary),
@@ -154,15 +134,27 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
 
-          // KPI Cards Grid
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 2,
-            children: [
+          // KPI Cards Grid - Responsive
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Calculate crossAxisCount based on screen width
+              int crossAxisCount = 3;
+              if (constraints.maxWidth < 600) {
+                crossAxisCount = 1; // Mobile: 1 column
+              } else if (constraints.maxWidth < 1024) {
+                crossAxisCount = 2; // Tablet: 2 columns
+              } else {
+                crossAxisCount = 3; // Desktop: 3 columns
+              }
+
+              return GridView.count(
+                crossAxisCount: crossAxisCount,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: constraints.maxWidth < 600 ? 2.5 : 2,
+                children: [
               KpiCard(
                 title: 'Total Electricity Units',
                 value: numberFormat.format(summary.totalElectricityUnits ?? 0),
@@ -201,7 +193,9 @@ class DashboardScreen extends ConsumerWidget {
                 color: AppTheme.statusColor,
                 subtitle: 'Paid / Unpaid',
               ),
-            ],
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: 24),

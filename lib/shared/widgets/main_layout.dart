@@ -17,33 +17,40 @@ class MainLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 768;
+
     return Scaffold(
-      body: Row(
-        children: [
-          // Left Navigation Rail
-          AppNavigationRail(onDestinationSelected: onNavigate),
+      body: SafeArea(
+        child: Row(
+          children: [
+            // Left Navigation Rail - Hidden on very small screens
+            if (!isSmallScreen) ...[
+              AppNavigationRail(onDestinationSelected: onNavigate),
+              const VerticalDivider(thickness: 1, width: 1),
+            ],
 
-          const VerticalDivider(thickness: 1, width: 1),
+            // Main Content Area
+            Expanded(
+              child: Column(
+                children: [
+                  // Top Bar
+                  AppTopBar(
+                    title: currentPageTitle,
+                    onMenuToggle: isSmallScreen
+                        ? null // Hide toggle on small screens
+                        : () {
+                            ref.read(navRailExpandedProvider.notifier).toggle();
+                          },
+                  ),
 
-          // Main Content Area
-          Expanded(
-            child: Column(
-              children: [
-                // Top Bar
-                AppTopBar(
-                  title: currentPageTitle,
-                  onMenuToggle: () {
-                    final currentState = ref.read(navRailExpandedProvider);
-                    ref.read(navRailExpandedProvider.notifier).state = !currentState;
-                  },
-                ),
-
-                // Page Content
-                Expanded(child: child),
-              ],
+                  // Page Content
+                  Expanded(child: child),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
