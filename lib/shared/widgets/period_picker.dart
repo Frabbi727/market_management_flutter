@@ -50,11 +50,11 @@ class PeriodPicker extends StatelessWidget {
     );
   }
 
-  void _changePeriod(int months) {
+  void _changePeriod(int days) {
     try {
-      final date = DateFormat('yyyy-MM').parse(currentPeriod);
-      final newDate = DateTime(date.year, date.month + months);
-      final newPeriod = DateFormat('yyyy-MM').format(newDate);
+      final date = DateFormat('yyyy-MM-dd').parse(currentPeriod);
+      final newDate = date.add(Duration(days: days));
+      final newPeriod = DateFormat('yyyy-MM-dd').format(newDate);
       onPeriodChanged(newPeriod);
     } catch (e) {
       print('Error changing period: $e');
@@ -63,25 +63,25 @@ class PeriodPicker extends StatelessWidget {
 
   String _formatPeriod(String period) {
     try {
-      final date = DateFormat('yyyy-MM').parse(period);
-      return DateFormat('MMMM yyyy').format(date);
+      final date = DateFormat('yyyy-MM-dd').parse(period);
+      return DateFormat('dd MMM yyyy').format(date);
     } catch (e) {
       return period;
     }
   }
 
   Future<void> _showPeriodDialog(BuildContext context) async {
-    final date = DateFormat('yyyy-MM').parse(currentPeriod);
+    final date = DateFormat('yyyy-MM-dd').parse(currentPeriod);
     final picked = await showDatePicker(
       context: context,
       initialDate: date,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      initialDatePickerMode: DatePickerMode.year,
+      initialDatePickerMode: DatePickerMode.day,
     );
 
     if (picked != null) {
-      final newPeriod = DateFormat('yyyy-MM').format(picked);
+      final newPeriod = DateFormat('yyyy-MM-dd').format(picked);
       onPeriodChanged(newPeriod);
     }
   }

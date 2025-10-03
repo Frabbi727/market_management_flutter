@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:market_management_flutter/core/constants/app_theme.dart';
 import 'package:market_management_flutter/features/dashboard/models/dashboard_summary.dart';
 import 'package:market_management_flutter/features/dashboard/models/dashboard_view_models.dart';
+import 'package:market_management_flutter/features/dashboard/models/invoice.dart';
+import 'package:market_management_flutter/features/dashboard/models/reading_status.dart';
 import 'package:market_management_flutter/features/dashboard/provider/dashboard_providers.dart';
 
 import '../../../shared/widgets/kpi_card.dart';
@@ -40,13 +42,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedPeriod = ref.watch(selectedPeriodProvider);
-    final health = ref.watch(dashboardHealthProvider);
-    final inputsSnapshot = ref.watch(dashboardInputsSnapshotProvider);
-    final invoices = ref.watch(dashboardInvoicesProvider);
-    final readings = ref.watch(dashboardReadingsProvider);
-    final costBreakdown = ref.watch(costBreakdownProvider);
     final shopsAsync = ref.watch(shopsProvider);
     final summaryAsync = ref.watch(dashboardSummaryProvider);
+    final invoicesAsync = ref.watch(invoicesProvider);
+    final readingsAsync = ref.watch(readingStatusProvider);
 
     final shopCount = shopsAsync.maybeWhen(
       data: (shops) => shops.length,
@@ -56,17 +55,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Container(
       color: AppTheme.backgroundColor,
       child: summaryAsync.when(
-        data: (summary) => _buildDashboardContent(
-          context,
-          summary,
-          selectedPeriod,
-          health,
-          inputsSnapshot,
-          invoices,
-          readings,
-          costBreakdown,
-          shopCount,
-        ),
+        data: (summary) {
+          return invoicesAsync.when(
+            data: (invoiceData) {
+              return readingsAsync.when(
+                data: (readings) {
+                  return _buildDashboardContent(
+                    context,
+                    summary,
+                    selectedPeriod,
+                    invoiceData,
+                    readings,
+                    shopCount,
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                      const SizedBox(height: 16),
+                      Text('Error loading readings: ${error.toString()}'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => ref.refresh(readingStatusProvider),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                  const SizedBox(height: 16),
+                  Text('Error loading invoices: ${error.toString()}'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => ref.refresh(invoicesProvider),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Column(
@@ -74,7 +112,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
               const SizedBox(height: 16),
-              Text('Error: ${error.toString()}'),
+              Text('Error loading summary: ${error.toString()}'),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.refresh(dashboardSummaryProvider),
@@ -89,18 +127,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildDashboardContent(
     BuildContext context,
-    DashboardSummary summary,
+    DashBoardSummary summary,
     String selectedPeriod,
-    DashboardHealthStatus health,
-    DashboardInputsSnapshot inputsSnapshot,
-    List<DashboardInvoiceRow> invoices,
-    List<DashboardReadingRow> readings,
-    CostBreakdown costBreakdown,
+    Invoice invoice,
+    List<ReadingStatus> readings,
     int? shopCount,
   ) {
-    final totalInvoicesCount =
-        (summary.paidInvoicesCount ?? 0) + (summary.unpaidInvoicesCount ?? 0);
-    final computeDisabled = health.computeDisabled;
+    // Calculate cost breakdown from KPIs
+    final costBreakdown = CostBreakdown(
+      electricity: summary.kpis?.electricityAmount ?? 0.0,
+      ac: summary.kpis?.acCost ?? 0.0,
+      service: summary.kpis?.serviceCost ?? 0.0,
+    );
+
+
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -108,20 +148,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildFilterActionsBar(
-            context,
-            selectedPeriod,
-            computeDisabled,
-            health,
-            shopCount,
-          ),
+            context: context,selectedPeriod: selectedPeriod,),
           const SizedBox(height: 16),
-          _buildKpiSection(summary, totalInvoicesCount),
+          _buildKpiSection(summary.kpis),
           const SizedBox(height: 16),
-          _buildHealthPanel(health),
+          _buildHealthPanel(summary.health),
           const SizedBox(height: 16),
-          _buildInputsSnapshotPanel(inputsSnapshot),
+          _buildInputsSnapshotPanel(summary.inputs),
           const SizedBox(height: 16),
-          _buildInvoicesSection(invoices),
+          _buildInvoicesSection(invoice),
           const SizedBox(height: 16),
           _buildReadingsPanel(readings),
           const SizedBox(height: 16),
@@ -131,12 +166,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildFilterActionsBar(
-    BuildContext context,
-    String selectedPeriod,
-    bool computeDisabled,
-    DashboardHealthStatus health,
-    int? shopCount,
+  Widget _buildFilterActionsBar({ required BuildContext context,
+    required String selectedPeriod,
+    int? shopCount,}
   ) {
     final theme = Theme.of(context);
 
@@ -179,100 +211,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () => _showSetInputsDialog(context),
-                icon: const Icon(Icons.tune_rounded),
-                label: const Text('Set Inputs'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => _showAddReadingDialog(context),
-                icon: const Icon(Icons.bolt_rounded),
-                label: const Text('Add Reading'),
-              ),
-              Tooltip(
-                message: computeDisabled
-                    ? 'Resolve missing inputs, tariff, or readings before compute.'
-                    : 'Run monthly billing compute.',
-                child: ElevatedButton.icon(
-                  onPressed: computeDisabled
-                      ? null
-                      : () => _showComputeDialog(context),
-                  icon: const Icon(Icons.calculate_rounded),
-                  label: const Text('Compute'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: computeDisabled
-                        ? null
-                        : theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => _showExportSheet(context),
-                icon: const Icon(Icons.file_download_rounded),
-                label: const Text('Export'),
-              ),
-              if (health.unlockedInvoices > 0)
-                Chip(
-                  backgroundColor: theme.colorScheme.errorContainer
-                      .withValues(alpha: 0.3),
-                  avatar: Icon(
-                    Icons.lock_open_rounded,
-                    size: 16,
-                    color: theme.colorScheme.error,
-                  ),
-                  label: Text(
-                    '${health.unlockedInvoices} invoices unlocked',
-                  ),
-                ),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildKpiSection(DashboardSummary summary, int totalInvoicesCount) {
+  Widget _buildKpiSection(Kpis? kpis) {
     final items = [
       KpiCard(
         title: 'Invoices',
-        value: _decimalFormat.format(totalInvoicesCount),
+        value: _decimalFormat.format(kpis?.invoiceCount??0),
         icon: Icons.receipt_long_rounded,
         color: AppTheme.invoiceColor,
         subtitle:
-            'Paid: ${_decimalFormat.format(summary.paidInvoicesCount ?? 0)} · Unpaid: ${_decimalFormat.format(summary.unpaidInvoicesCount ?? 0)}',
+            'Paid: ${_decimalFormat.format( 0)} · Unpaid: ${_decimalFormat.format( 0)}',
       ),
       KpiCard(
         title: 'Total Amount',
-        value: _currencyFormat.format(summary.totalInvoicesAmount ?? 0),
+        value: _currencyFormat.format(kpis?.totalAmount ?? 0.0),
         icon: Icons.account_balance_wallet_rounded,
         color: AppTheme.amountColor,
       ),
       KpiCard(
         title: 'Electricity Units',
-        value: _decimalFormat.format(summary.totalElectricityUnits ?? 0),
+        value: _decimalFormat.format(kpis?.electricityUnits ?? 0.0),
         icon: Icons.electric_bolt_rounded,
         color: AppTheme.electricityColor,
         subtitle: 'kWh',
       ),
       KpiCard(
         title: 'Electricity Amount',
-        value: _currencyFormat.format(summary.totalElectricityAmount ?? 0),
+        value: _currencyFormat.format(kpis?.electricityAmount ?? 0.0),
         icon: Icons.energy_savings_leaf_rounded,
         color: AppTheme.primaryColor,
       ),
       KpiCard(
         title: 'AC Cost',
-        value: _currencyFormat.format(summary.totalAcCost ?? 0),
+        value: _currencyFormat.format(kpis?.acCost ?? 0.0),
         icon: Icons.ac_unit_rounded,
         color: AppTheme.acCostColor,
       ),
       KpiCard(
         title: 'Service Cost',
-        value: _currencyFormat.format(summary.totalServiceCost ?? 0),
+        value: _currencyFormat.format(kpis?.serviceCost ?? 0.0),
         icon: Icons.handshake_rounded,
         color: AppTheme.serviceCostColor,
       ),
@@ -302,31 +283,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildHealthPanel(DashboardHealthStatus health) {
+  Widget _buildHealthPanel(Health? health) {
     final badges = [
       _HealthBadgeData(
         label: 'Inputs',
-        value: health.inputsReady ? 'OK' : 'Missing',
+        value: (health?.inputsOk??false) ? 'OK' : 'Missing',
         icon: Icons.assignment_turned_in_rounded,
-        color: health.inputsReady ? Colors.teal : Colors.red,
+        color: (health?.inputsOk??false) ? Colors.teal : Colors.red,
       ),
       _HealthBadgeData(
         label: 'Missing readings',
-        value: '${health.missingReadings}',
+        value: '${health?.missingReadingsCount??0}',
         icon: Icons.flash_off,
-        color: health.missingReadings > 0 ? Colors.orange : Colors.teal,
+        color: (health?.missingReadingsCount??0) > 0 ? Colors.orange : Colors.teal,
       ),
       _HealthBadgeData(
         label: 'Tariff',
-        value: health.tariffReady ? 'OK' : 'Set required',
+        value: (health?.tariffOk??false) ? 'OK' : 'Set required',
         icon: Icons.price_change_rounded,
-        color: health.tariffReady ? Colors.teal : Colors.red,
+        color: (health?.tariffOk??false) ? Colors.teal : Colors.red,
       ),
       _HealthBadgeData(
         label: 'Unlocked invoices',
-        value: '${health.unlockedInvoices}',
+        value: '${health?.unlockedInvoicesCount??0}',
         icon: Icons.lock_open_rounded,
-        color: health.unlockedInvoices > 0 ? Colors.orange : Colors.teal,
+        color: (health?.unlockedInvoicesCount??0) > 0 ? Colors.orange : Colors.teal,
       ),
     ];
 
@@ -373,39 +354,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildInputsSnapshotPanel(DashboardInputsSnapshot inputs) {
+  Widget _buildInputsSnapshotPanel(Inputs? inputs) {
     final entries = [
       _SnapshotEntry(
         label: 'AC total units',
-        value: '${_decimalFormat.format(inputs.acTotalUnits)} kWh',
+        value: '${_decimalFormat.format(inputs?.acTotalUnits??0.0)} kWh',
       ),
       _SnapshotEntry(
         label: 'AC unit price',
-        value: _currencyWithDecimals.format(inputs.acUnitPrice),
+        value: _currencyWithDecimals.format(inputs?.acUnitPrice??0.0),
       ),
       _SnapshotEntry(
         label: 'AC rate / sqft',
-        value: _currencyWithDecimals.format(inputs.acRatePerSqft),
+        value: _currencyWithDecimals.format(inputs?.acPerSqftRate??0.0),
       ),
       _SnapshotEntry(
         label: 'Guard cost',
-        value: _currencyFormat.format(inputs.guardCost),
+        value: _currencyFormat.format(inputs?.guardCost??0.0),
       ),
       _SnapshotEntry(
         label: 'Maid cost',
-        value: _currencyFormat.format(inputs.maidCost),
+        value: _currencyFormat.format(inputs?.maidCost??0.0),
       ),
       _SnapshotEntry(
         label: 'Other cost',
-        value: _currencyFormat.format(inputs.otherCost),
+        value: _currencyFormat.format(inputs?.otherCost??0.0),
       ),
       _SnapshotEntry(
         label: 'Service rate / sqft',
-        value: _currencyWithDecimals.format(inputs.serviceRatePerSqft),
+        value: _currencyWithDecimals.format(inputs?.servicePerSqftRate??0.0),
       ),
       _SnapshotEntry(
         label: 'Market total sqft',
-        value: _decimalFormat.format(inputs.marketTotalSqft),
+        value: _decimalFormat.format(inputs?.marketTotalSqft??0.0),
       ),
     ];
 
@@ -486,8 +467,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildInvoicesSection(List<DashboardInvoiceRow> invoices) {
-    if (invoices.isEmpty) {
+  Widget _buildInvoicesSection(Invoice invoice) {
+    final content = invoice.content ?? [];
+    if (content.isEmpty) {
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -511,24 +493,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     final dataSource = _InvoicesDataSource(
-      invoices: invoices,
+      invoices: content,
       currencyFormat: _currencyFormat,
       onView: (invoice) => _showInvoiceDetails(context, invoice),
     );
 
-    final hasOverrides = invoices.any((invoice) => invoice.isOverridden);
+    final hasOverrides = content.any((c) => c.hasOverride ?? false);
 
-    final options = <int>{5, 10, 20, invoices.length}
+    final options = <int>{5, 10, 20, content.length}
       ..removeWhere((value) => value <= 0);
     final availableRows =
-        options.where((value) => value <= invoices.length).toList()..sort();
+        options.where((value) => value <= content.length).toList()..sort();
 
     var effectiveRowsPerPage = _rowsPerPage;
     if (effectiveRowsPerPage < 1) {
       effectiveRowsPerPage = 1;
     }
-    if (effectiveRowsPerPage > invoices.length && invoices.isNotEmpty) {
-      effectiveRowsPerPage = invoices.length;
+    if (effectiveRowsPerPage > content.length && content.isNotEmpty) {
+      effectiveRowsPerPage = content.length;
     }
     if (!availableRows.contains(effectiveRowsPerPage)) {
       availableRows.add(effectiveRowsPerPage);
@@ -569,7 +551,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildReadingsPanel(List<DashboardReadingRow> readings) {
+  Widget _buildReadingsPanel(List<ReadingStatus> readings) {
     if (readings.isEmpty) {
       return Container(
         width: double.infinity,
@@ -630,31 +612,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 rows: readings
                     .map(
                       (reading) => DataRow(
-                        color: reading.isMissing
+                        color: (reading.missing ?? false)
                             ? WidgetStateProperty.all<Color?>(
                                 Colors.red.withValues(alpha: 0.05),
                               )
                             : null,
                         cells: [
-                          DataCell(Text(reading.shopName)),
-                          DataCell(Text(reading.meterCode)),
-                          DataCell(Text(_decimalFormat.format(reading.previous))),
+                          DataCell(Text(reading.shopName ?? '')),
+                          DataCell(Text(reading.meterNumber ?? '')),
+                          DataCell(Text(_decimalFormat.format(reading.prevReading ?? 0))),
                           DataCell(
                             Text(
-                              reading.current == 0
+                              (reading.currReading ?? 0) == 0
                                   ? '—'
-                                  : _decimalFormat.format(reading.current),
+                                  : _decimalFormat.format(reading.currReading ?? 0),
                             ),
                           ),
-                          DataCell(Text(_decimalFormat.format(reading.units))),
+                          DataCell(Text(_decimalFormat.format(reading.units ?? 0))),
                           DataCell(
                             Chip(
-                              label: Text(reading.isMissing ? 'Missing' : 'OK'),
-                              backgroundColor: reading.isMissing
+                              label: Text((reading.missing ?? false) ? 'Missing' : 'OK'),
+                              backgroundColor: (reading.missing ?? false)
                                   ? Colors.red.withValues(alpha: 0.15)
                                   : Colors.teal.withValues(alpha: 0.15),
                               labelStyle: TextStyle(
-                                color: reading.isMissing
+                                color: (reading.missing ?? false)
                                     ? Colors.red.shade700
                                     : Colors.teal.shade700,
                                 fontWeight: FontWeight.w600,
@@ -794,119 +776,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Future<void> _showAddReadingDialog(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Reading'),
-        content: const Text('Reading capture workflow will be added here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showComputeDialog(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Run Compute'),
-        content: const Text(
-          'This will trigger monthly billing computation for the selected period.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Compute triggered.')),
-              );
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showExportSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Export options',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_rounded),
-              title: const Text('Export invoices PDF'),
-              onTap: () {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('PDF export queued.')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.grid_on_rounded),
-              title: const Text('Export detailed CSV'),
-              onTap: () {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('CSV export queued.')),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> _showInvoiceDetails(
     BuildContext context,
-    DashboardInvoiceRow invoice,
+    Content invoice,
   ) async {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Invoice ${invoice.shopCode}'),
+        title: Text('Invoice ${invoice.shopCode ?? ''}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDialogRow('Shop', invoice.shopName),
+            _buildDialogRow('Shop', invoice.shopName ?? ''),
             _buildDialogRow(
               'Electricity',
-              _currencyFormat.format(invoice.electricityAmount),
+              _currencyFormat.format((invoice.electricityAmount ?? 0).toDouble()),
             ),
-            _buildDialogRow('AC', _currencyFormat.format(invoice.acAmount)),
+            _buildDialogRow('AC', _currencyFormat.format(invoice.acAmount ?? 0.0)),
             _buildDialogRow(
               'Service',
-              _currencyFormat.format(invoice.serviceAmount),
+              _currencyFormat.format(invoice.serviceAmount ?? 0.0),
             ),
             const Divider(),
             _buildDialogRow(
               'Total',
-              _currencyFormat.format(invoice.totalAmount),
+              _currencyFormat.format(invoice.total ?? 0.0),
             ),
-            _buildDialogRow('Status', invoice.status),
-            _buildDialogRow('Locked', invoice.isLocked ? 'Yes' : 'No'),
-            if (invoice.isOverridden)
+            _buildDialogRow('Status', invoice.status ?? ''),
+            _buildDialogRow('Locked', (invoice.locked ?? false) ? 'Yes' : 'No'),
+            if (invoice.hasOverride ?? false)
               const Padding(
                 padding: EdgeInsets.only(top: 8.0),
                 child: Text(
@@ -985,9 +885,9 @@ class _InvoicesDataSource extends DataTableSource {
     required this.onView,
   });
 
-  final List<DashboardInvoiceRow> invoices;
+  final List<Content> invoices;
   final NumberFormat currencyFormat;
-  final void Function(DashboardInvoiceRow invoice) onView;
+  final void Function(Content invoice) onView;
 
   @override
   DataRow? getRow(int index) {
@@ -999,20 +899,20 @@ class _InvoicesDataSource extends DataTableSource {
 
     return DataRow.byIndex(
       index: index,
-      color: invoice.isOverridden
+      color: (invoice.hasOverride ?? false)
           ? WidgetStateProperty.all<Color?>(
               Colors.orange.withValues(alpha: 0.08),
             )
           : null,
       cells: [
-        DataCell(Text(invoice.shopCode)),
+        DataCell(Text(invoice.shopCode ?? '')),
         DataCell(
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(invoice.shopName),
-              if (invoice.isOverridden)
+              Text(invoice.shopName ?? ''),
+              if (invoice.hasOverride ?? false)
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Chip(
@@ -1030,14 +930,14 @@ class _InvoicesDataSource extends DataTableSource {
             ],
           ),
         ),
-        DataCell(Text(currencyFormat.format(invoice.electricityAmount))),
-        DataCell(Text(currencyFormat.format(invoice.acAmount))),
-        DataCell(Text(currencyFormat.format(invoice.serviceAmount))),
-        DataCell(Text(currencyFormat.format(invoice.totalAmount))),
+        DataCell(Text(currencyFormat.format((invoice.electricityAmount ?? 0).toDouble()))),
+        DataCell(Text(currencyFormat.format(invoice.acAmount ?? 0.0))),
+        DataCell(Text(currencyFormat.format(invoice.serviceAmount ?? 0.0))),
+        DataCell(Text(currencyFormat.format(invoice.total ?? 0.0))),
         DataCell(() {
-          final palette = _statusColor(invoice.status);
+          final palette = _statusColor(invoice.status ?? '');
           return Chip(
-            label: Text(invoice.status),
+            label: Text(invoice.status ?? ''),
             backgroundColor: palette.withValues(alpha: 0.15),
             labelStyle: TextStyle(
               color: palette.shade700,
@@ -1047,8 +947,8 @@ class _InvoicesDataSource extends DataTableSource {
         }()),
         DataCell(
           Icon(
-            invoice.isLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
-            color: invoice.isLocked ? Colors.green : Colors.red,
+            (invoice.locked ?? false) ? Icons.lock_rounded : Icons.lock_open_rounded,
+            color: (invoice.locked ?? false) ? Colors.green : Colors.red,
           ),
         ),
         DataCell(
@@ -1083,64 +983,3 @@ class _InvoicesDataSource extends DataTableSource {
   }
 }
 
-class _ReadingsDataSource extends DataTableSource {
-  _ReadingsDataSource({
-    required this.readings,
-    required this.decimalFormat,
-  });
-
-  final List<DashboardReadingRow> readings;
-  final NumberFormat decimalFormat;
-
-  @override
-  DataRow? getRow(int index) {
-    if (index >= readings.length) {
-      return null;
-    }
-
-    final reading = readings[index];
-
-    return DataRow.byIndex(
-      index: index,
-      color: reading.isMissing
-          ? WidgetStateProperty.all<Color?>(
-              Colors.red.withValues(alpha: 0.08),
-            )
-          : null,
-      cells: [
-        DataCell(Text(reading.shopName)),
-        DataCell(Text(reading.meterCode)),
-        DataCell(Text(decimalFormat.format(reading.previous))),
-        DataCell(
-          Text(
-            reading.current == 0 ? '—' : decimalFormat.format(reading.current),
-          ),
-        ),
-        DataCell(Text(decimalFormat.format(reading.units))),
-        DataCell(
-          Chip(
-            label: Text(reading.isMissing ? 'Missing' : 'OK'),
-            backgroundColor: reading.isMissing
-                ? Colors.red.withValues(alpha: 0.15)
-                : Colors.teal.withValues(alpha: 0.15),
-            labelStyle: TextStyle(
-              color: reading.isMissing
-                  ? Colors.red.shade700
-                  : Colors.teal.shade700,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  bool get isRowCountApproximate => false;
-
-  @override
-  int get rowCount => readings.length;
-
-  @override
-  int get selectedRowCount => 0;
-}
