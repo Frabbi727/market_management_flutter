@@ -282,18 +282,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       builder: (context, constraints) {
         int crossAxisCount = 3;
         if (constraints.maxWidth < 640) {
-          crossAxisCount = 1;
-        } else if (constraints.maxWidth < 1024) {
           crossAxisCount = 2;
+        } else if (constraints.maxWidth < 1024) {
+          crossAxisCount = 3;
+        } else {
+          crossAxisCount = 6;
         }
 
         return GridView.count(
           crossAxisCount: crossAxisCount,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: constraints.maxWidth < 640 ? 2.4 : 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: constraints.maxWidth < 640 ? 1.6 : 1.3,
           children: items,
         );
       },
@@ -591,66 +593,82 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
-    final dataSource = _ReadingsDataSource(
-      readings: readings,
-      decimalFormat: _decimalFormat,
-    );
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SizedBox(
-        width: math.max(MediaQuery.of(context).size.width - 32, 800),
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(
-            Colors.grey.withValues(alpha: 0.1),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Readings Status',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          columns: const [
-            DataColumn(label: Text('Shop Name')),
-            DataColumn(label: Text('Meter Code')),
-            DataColumn(label: Text('Previous')),
-            DataColumn(label: Text('Current')),
-            DataColumn(label: Text('Units')),
-            DataColumn(label: Text('Status')),
-          ],
-          rows: readings
-              .map(
-                (reading) => DataRow(
-                  color: reading.isMissing
-                      ? WidgetStateProperty.all<Color?>(
-                          Colors.red.withValues(alpha: 0.05),
-                        )
-                      : null,
-                  cells: [
-                    DataCell(Text(reading.shopName)),
-                    DataCell(Text(reading.meterCode)),
-                    DataCell(Text(_decimalFormat.format(reading.previous))),
-                    DataCell(
-                      Text(
-                        reading.current == 0
-                            ? '—'
-                            : _decimalFormat.format(reading.current),
-                      ),
-                    ),
-                    DataCell(Text(_decimalFormat.format(reading.units))),
-                    DataCell(
-                      Chip(
-                        label: Text(reading.isMissing ? 'Missing' : 'OK'),
-                        backgroundColor: reading.isMissing
-                            ? Colors.red.withValues(alpha: 0.15)
-                            : Colors.teal.withValues(alpha: 0.15),
-                        labelStyle: TextStyle(
-                          color: reading.isMissing
-                              ? Colors.red.shade700
-                              : Colors.teal.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: math.max(MediaQuery.of(context).size.width - 64, 800),
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(
+                  Colors.grey.withValues(alpha: 0.1),
                 ),
-              )
-              .toList(),
-        ),
+                columns: const [
+                  DataColumn(label: Text('Shop Name')),
+                  DataColumn(label: Text('Meter Code')),
+                  DataColumn(label: Text('Previous')),
+                  DataColumn(label: Text('Current')),
+                  DataColumn(label: Text('Units')),
+                  DataColumn(label: Text('Status')),
+                ],
+                rows: readings
+                    .map(
+                      (reading) => DataRow(
+                        color: reading.isMissing
+                            ? WidgetStateProperty.all<Color?>(
+                                Colors.red.withValues(alpha: 0.05),
+                              )
+                            : null,
+                        cells: [
+                          DataCell(Text(reading.shopName)),
+                          DataCell(Text(reading.meterCode)),
+                          DataCell(Text(_decimalFormat.format(reading.previous))),
+                          DataCell(
+                            Text(
+                              reading.current == 0
+                                  ? '—'
+                                  : _decimalFormat.format(reading.current),
+                            ),
+                          ),
+                          DataCell(Text(_decimalFormat.format(reading.units))),
+                          DataCell(
+                            Chip(
+                              label: Text(reading.isMissing ? 'Missing' : 'OK'),
+                              backgroundColor: reading.isMissing
+                                  ? Colors.red.withValues(alpha: 0.15)
+                                  : Colors.teal.withValues(alpha: 0.15),
+                              labelStyle: TextStyle(
+                                color: reading.isMissing
+                                    ? Colors.red.shade700
+                                    : Colors.teal.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
