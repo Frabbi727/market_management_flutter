@@ -1,8 +1,7 @@
 
 import 'package:json_annotation/json_annotation.dart';
 part 'invoice.g.dart';
-@JsonSerializable(explicitToJson: true)
-
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.none)
 class Invoice {
   List<Content>? content;
   int? pageNumber;
@@ -29,8 +28,7 @@ class Invoice {
   }
 }
 
-@JsonSerializable(explicitToJson: true)
-
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.none)
 class Content {
   int? invoiceId;
   String? shopCode;

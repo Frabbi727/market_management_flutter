@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'dashboard_summary.g.dart';
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true,fieldRename: FieldRename.none)
 class DashBoardSummary {
   Kpis? kpis;
   Health? health;

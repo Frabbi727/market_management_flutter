@@ -2,7 +2,7 @@
 
 import 'package:json_annotation/json_annotation.dart';
 part 'shop_model.g.dart';
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true,fieldRename: FieldRename.none)
 
 class ShopModel {
   int? id;

@@ -470,6 +470,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildInvoicesSection(Invoice invoice) {
     final content = invoice.content ?? [];
+    debugPrint("Invoice content count: ${content.length}");
+    if (content.isNotEmpty) {
+      debugPrint("First invoice: ${content.first}");
+    }
     if (content.isEmpty) {
       return Container(
         width: double.infinity,
@@ -518,35 +522,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       availableRows.sort();
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SizedBox(
-        width: math.max(MediaQuery.of(context).size.width - 32, 900),
-        child: PaginatedDataTable(
-          header: const Text('Invoices'),
-          rowsPerPage: effectiveRowsPerPage,
-          availableRowsPerPage: availableRows,
-          dataRowMinHeight: hasOverrides ? 60 : 56,
-          dataRowMaxHeight: hasOverrides ? 72 : 60,
-          onRowsPerPageChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _rowsPerPage = value;
-              });
-            }
-          },
-          columns: const [
-            DataColumn(label: Text('Shop Code')),
-            DataColumn(label: Text('Shop Name')),
-            DataColumn(label: Text('Elec (৳)')),
-            DataColumn(label: Text('AC (৳)')),
-            DataColumn(label: Text('Service (৳)')),
-            DataColumn(label: Text('Total (৳)')),
-            DataColumn(label: Text('Status')),
-            DataColumn(label: Text('Locked')),
-            DataColumn(label: Text('Actions')),
-          ],
-          source: dataSource,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: math.max(MediaQuery.of(context).size.width - 64, 900),
+          child: PaginatedDataTable(
+            header: const Text('Invoices'),
+            rowsPerPage: effectiveRowsPerPage,
+            availableRowsPerPage: availableRows,
+            dataRowMinHeight: hasOverrides ? 60 : 56,
+            dataRowMaxHeight: hasOverrides ? 72 : 60,
+            onRowsPerPageChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _rowsPerPage = value;
+                });
+              }
+            },
+            columns: const [
+              DataColumn(label: Text('Shop Code')),
+              DataColumn(label: Text('Shop Name')),
+              DataColumn(label: Text('Elec (৳)')),
+              DataColumn(label: Text('AC (৳)')),
+              DataColumn(label: Text('Service (৳)')),
+              DataColumn(label: Text('Total (৳)')),
+              DataColumn(label: Text('Status')),
+              DataColumn(label: Text('Locked')),
+              DataColumn(label: Text('Actions')),
+            ],
+            source: dataSource,
+          ),
         ),
       ),
     );

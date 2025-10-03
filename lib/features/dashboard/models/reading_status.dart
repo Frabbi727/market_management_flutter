@@ -1,7 +1,7 @@
 
 import 'package:json_annotation/json_annotation.dart';
 part 'reading_status.g.dart';
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true,fieldRename: FieldRename.none)
 
 class ReadingStatus {
   String? shopCode;
