@@ -8,22 +8,22 @@ part of 'reading_status.dart';
 
 ReadingStatus _$ReadingStatusFromJson(Map<String, dynamic> json) =>
     ReadingStatus(
-      shopCode: json['shop_code'] as String?,
-      shopName: json['shop_name'] as String?,
-      meterNumber: json['meter_number'] as String?,
-      prevReading: (json['prev_reading'] as num?)?.toInt(),
-      currReading: (json['curr_reading'] as num?)?.toInt(),
+      shopCode: json['shopCode'] as String?,
+      shopName: json['shopName'] as String?,
+      meterNumber: json['meterNumber'] as String?,
+      prevReading: (json['prevReading'] as num?)?.toInt(),
+      currReading: (json['currReading'] as num?)?.toInt(),
       units: (json['units'] as num?)?.toInt(),
       missing: json['missing'] as bool?,
     );
 
 Map<String, dynamic> _$ReadingStatusToJson(ReadingStatus instance) =>
     <String, dynamic>{
-      'shop_code': instance.shopCode,
-      'shop_name': instance.shopName,
-      'meter_number': instance.meterNumber,
-      'prev_reading': instance.prevReading,
-      'curr_reading': instance.currReading,
+      'shopCode': instance.shopCode,
+      'shopName': instance.shopName,
+      'meterNumber': instance.meterNumber,
+      'prevReading': instance.prevReading,
+      'currReading': instance.currReading,
       'units': instance.units,
       'missing': instance.missing,
     };

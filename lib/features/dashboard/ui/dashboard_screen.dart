@@ -566,6 +566,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildReadingsPanel(List<ReadingStatus> readings) {
+    debugPrint("Reading status count: ${readings.length}");
+    if (readings.isNotEmpty) {
+      debugPrint("First reading: ${readings.first}");
+    }
     if (readings.isEmpty) {
       return Container(
         width: double.infinity,
@@ -632,7 +636,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               )
                             : null,
                         cells: [
-                          DataCell(Text(reading.shopName ?? '')),
+                          DataCell(Text(reading.shopName ?? reading.shopCode ?? '')),
                           DataCell(Text(reading.meterNumber ?? '')),
                           DataCell(Text(_decimalFormat.format(reading.prevReading ?? 0))),
                           DataCell(
