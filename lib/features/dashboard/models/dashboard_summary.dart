@@ -21,7 +21,7 @@ class DashBoardSummary {
   }
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.none)
 class Health {
   bool? inputsOk;
   int? missingReadingsCount;
@@ -45,7 +45,7 @@ class Health {
   }
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.none)
 class Inputs {
   double? acTotalUnits;
   double? acUnitPrice;
@@ -77,7 +77,7 @@ class Inputs {
   }
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.none)
 class Kpis {
   int? invoiceCount;
   double? totalAmount;

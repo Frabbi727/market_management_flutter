@@ -217,6 +217,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildKpiSection(Kpis? kpis) {
+    debugPrint("this is kpi section ${kpis}");
     final items = [
       KpiCard(
         title: 'Invoices',
@@ -911,7 +912,7 @@ class _InvoicesDataSource extends DataTableSource {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(invoice.shopName ?? ''),
+              Text(invoice.shopName ?? invoice.shopCode ?? 'N/A'),
               if (invoice.hasOverride ?? false)
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0),
