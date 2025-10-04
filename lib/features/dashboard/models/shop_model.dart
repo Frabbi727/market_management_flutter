@@ -2,14 +2,23 @@
 
 import 'package:json_annotation/json_annotation.dart';
 part 'shop_model.g.dart';
-@JsonSerializable(explicitToJson: true,fieldRename: FieldRename.none)
 
+@JsonSerializable(
+  explicitToJson: true,
+  fieldRename: FieldRename.none,
+)
 class ShopModel {
   int? id;
   int? shopNumber;
   String? code;
   String? shopName;
+
+  @JsonKey(
+    fromJson: _marketFromJson,
+    toJson: _marketToJson,
+  )
   String? market;
+
   int? floor;
   String? side;
   String? location;
@@ -42,6 +51,17 @@ class ShopModel {
     this.createdAt,
     this.updatedAt,
   });
+
+  static String? _marketFromJson(dynamic json) {
+    if (json is String) {
+      return json;
+    } else if (json is Map) {
+      return json['name'] as String?;
+    }
+    return null;
+  }
+
+  static dynamic _marketToJson(String? market) => market;
 
   factory ShopModel.fromJson(Map<String, dynamic> json) =>
       _$ShopModelFromJson(json);
